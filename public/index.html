@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Codex Rate Dashboard</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header class="topbar">
+        <div>
+          <p class="eyebrow">Local only</p>
+          <h1>Codex Rate Dashboard</h1>
+        </div>
+        <div class="toolbar" aria-label="dashboard controls">
+          <div class="segments limit-segments" role="group" aria-label="表示するレート枠">
+            <button class="segment active" data-limit="primary" type="button">5時間</button>
+            <button class="segment" data-limit="secondary" type="button">1週間</button>
+          </div>
+          <div class="segments" role="group" aria-label="表示期間">
+            <button class="segment" data-days="24h" type="button">24h</button>
+            <button class="segment active" data-days="7" type="button">7日</button>
+            <button class="segment" data-days="14" type="button">14日</button>
+            <button class="segment" data-days="30" type="button">30日</button>
+            <button class="segment" data-days="all" type="button">全期間</button>
+          </div>
+          <button id="scanButton" class="scan-button" type="button">再スキャン</button>
+        </div>
+      </header>
+
+      <section class="status-strip" aria-label="current status">
+        <div class="metric-block">
+          <span class="label">5時間枠 残量</span>
+          <strong id="primaryValue">--%</strong>
+          <span id="primaryReset" class="subtle">reset --</span>
+        </div>
+        <div class="metric-block">
+          <span class="label">1週間枠 残量</span>
+          <strong id="secondaryValue">--%</strong>
+          <span id="secondaryReset" class="subtle">reset --</span>
+        </div>
+        <div class="metric-block compact">
+          <span class="label">最終スキャン</span>
+          <strong id="scanTime">--</strong>
+          <span id="scanCount" class="subtle">0 snapshots</span>
+        </div>
+      </section>
+
+      <section class="workspace" aria-label="rate limit chart">
+        <div class="chart-header">
+          <div>
+            <h2 id="chartTitle">残量推移</h2>
+            <p id="chartScope">直近7日の rate_limits snapshots</p>
+          </div>
+          <div class="legend" aria-label="chart legend">
+            <span id="activeLegend"><i class="line-primary"></i>5時間枠</span>
+            <span><i class="line-warning"></i>20%</span>
+          </div>
+        </div>
+        <div class="chart-wrap">
+          <svg id="chart" role="img" aria-label="Codex rate limit usage chart"></svg>
+          <p id="emptyState" class="empty-state" hidden>表示できる rate_limits がまだありません。</p>
+        </div>
+      </section>
+
+      <section class="daily-band" aria-label="daily peaks">
+        <div class="section-title">
+          <h2 id="dailyTitle">日別最低残量</h2>
+          <span id="generatedAt">--</span>
+        </div>
+        <div id="dailyRows" class="daily-rows"></div>
+      </section>
+    </main>
+
+    <script src="/app.js" type="module"></script>
+  </body>
+</html>

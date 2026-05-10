@@ -1,0 +1,15 @@
+{
+  "name": "codex-rate-dashboard",
+  "version": "0.1.0",
+  "description": "Local dashboard for Codex rate-limit snapshots extracted from session JSONL logs.",
+  "type": "module",
+  "scripts": {
+    "start": "node src/server.js",
+    "collect": "node src/collect.js",
+    "check": "node --check src/config.js && node --check src/db.js && node --check src/scanner.js && node --check src/collect.js && node --check src/server.js"
+  },
+  "engines": {
+    "node": ">=24.0.0"
+  },
+  "license": "MIT"
+}
