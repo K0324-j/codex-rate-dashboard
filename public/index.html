@@ -18,7 +18,7 @@
             <button class="segment active" data-limit="primary" type="button">5時間</button>
             <button class="segment" data-limit="secondary" type="button">1週間</button>
           </div>
-          <div class="segments" role="group" aria-label="表示期間">
+          <div class="segments period-segments" role="group" aria-label="表示期間">
             <button class="segment" data-days="24h" type="button">24h</button>
             <button class="segment active" data-days="7" type="button">7日</button>
             <button class="segment" data-days="14" type="button">14日</button>
@@ -26,22 +26,26 @@
             <button class="segment" data-days="all" type="button">全期間</button>
           </div>
           <button id="scanButton" class="scan-button" type="button">再スキャン</button>
+          <div class="segments language-segments" role="group" aria-label="Language">
+            <button class="segment" data-lang="ja" type="button">日本語</button>
+            <button class="segment" data-lang="en" type="button">English</button>
+          </div>
         </div>
       </header>
 
       <section class="status-strip" aria-label="current status">
         <div class="metric-block">
-          <span class="label">5時間枠 残量</span>
+          <span id="primaryMetricLabel" class="label">5時間枠 残量</span>
           <strong id="primaryValue">--%</strong>
           <span id="primaryReset" class="subtle">reset --</span>
         </div>
         <div class="metric-block">
-          <span class="label">1週間枠 残量</span>
+          <span id="secondaryMetricLabel" class="label">1週間枠 残量</span>
           <strong id="secondaryValue">--%</strong>
           <span id="secondaryReset" class="subtle">reset --</span>
         </div>
         <div class="metric-block compact">
-          <span class="label">最終スキャン</span>
+          <span id="scanMetricLabel" class="label">最終スキャン</span>
           <strong id="scanTime">--</strong>
           <span id="scanCount" class="subtle">0 snapshots</span>
         </div>

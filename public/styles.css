@@ -96,6 +96,11 @@ h2 {
   grid-auto-flow: initial;
 }
 
+.language-segments {
+  grid-template-columns: repeat(2, minmax(72px, auto));
+  grid-auto-flow: initial;
+}
+
 .segment,
 .scan-button {
   min-height: 38px;
@@ -205,6 +210,10 @@ h2 {
   vertical-align: middle;
 }
 
+.reset-legend {
+  margin-left: 10px;
+}
+
 .line-primary {
   background: var(--primary);
 }
@@ -215,6 +224,10 @@ h2 {
 
 .line-warning {
   background: var(--warning);
+}
+
+.line-reset {
+  background: var(--danger);
 }
 
 .chart-wrap {
@@ -234,9 +247,18 @@ h2 {
   stroke-width: 1;
 }
 
+.x-grid-line {
+  stroke: #efebe2;
+  stroke-width: 1;
+}
+
 .axis-label {
   fill: var(--muted);
   font-size: 12px;
+}
+
+.axis-label-x {
+  fill: #4d5c67;
 }
 
 .threshold {
@@ -249,6 +271,24 @@ h2 {
   stroke: var(--danger);
   stroke-width: 1.5;
   stroke-dasharray: 4 8;
+}
+
+.reset-marker {
+  stroke: var(--danger);
+  stroke-width: 1.4;
+  stroke-dasharray: 2 5;
+  opacity: 0.62;
+}
+
+.reset-marker-dot {
+  fill: var(--danger);
+  opacity: 0.86;
+}
+
+.reset-marker-label {
+  fill: var(--danger);
+  font-size: 11px;
+  font-weight: 700;
 }
 
 .path-primary,
@@ -273,6 +313,48 @@ h2 {
 
 .dot-secondary {
   fill: var(--secondary);
+}
+
+.hover-line {
+  stroke: #171b1f;
+  stroke-width: 1;
+  stroke-dasharray: 3 4;
+  opacity: 0.58;
+  pointer-events: none;
+}
+
+.hover-dot {
+  stroke: #fff;
+  stroke-width: 2;
+  pointer-events: none;
+}
+
+.chart-tooltip {
+  position: absolute;
+  z-index: 3;
+  display: grid;
+  gap: 5px;
+  width: 200px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  background: rgba(255, 255, 255, 0.96);
+  box-shadow: 0 12px 34px rgba(22, 24, 26, 0.15);
+  color: var(--ink);
+  font-size: 12px;
+  pointer-events: none;
+}
+
+.chart-tooltip strong {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.chart-tooltip span {
+  color: var(--muted);
+}
+
+.chart-tooltip[hidden] {
+  display: none;
 }
 
 .empty-state {

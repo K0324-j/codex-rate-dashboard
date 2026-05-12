@@ -132,7 +132,9 @@ export function getSummary(db, days = 7) {
     SELECT
       event_timestamp AS eventTimestamp,
       primary_used_percent AS primaryUsedPercent,
-      secondary_used_percent AS secondaryUsedPercent
+      primary_resets_at AS primaryResetsAt,
+      secondary_used_percent AS secondaryUsedPercent,
+      secondary_resets_at AS secondaryResetsAt
     FROM rate_limit_snapshots
     WHERE event_timestamp >= ?
     ORDER BY event_timestamp ASC, id ASC
@@ -141,7 +143,9 @@ export function getSummary(db, days = 7) {
     SELECT
       event_timestamp AS eventTimestamp,
       primary_used_percent AS primaryUsedPercent,
-      secondary_used_percent AS secondaryUsedPercent
+      primary_resets_at AS primaryResetsAt,
+      secondary_used_percent AS secondaryUsedPercent,
+      secondary_resets_at AS secondaryResetsAt
     FROM rate_limit_snapshots
     ORDER BY event_timestamp ASC, id ASC
   `;
