@@ -40,6 +40,8 @@ This app does not communicate with external services.
 
 There is no telemetry, external CDN, external API, or analytics tag. The web server binds only to `127.0.0.1`.
 
+The rescan endpoint uses a per-server-start random token exposed only to the local page through `/api/config`. This is a lightweight local CSRF guard, not full authentication.
+
 ## Installation
 
 ```powershell

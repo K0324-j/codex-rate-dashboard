@@ -86,6 +86,7 @@ const state = {
   limit: "primary",
   language: getInitialLanguage(),
   data: null,
+  scanToken: null,
 };
 
 let chartState = null;
@@ -238,11 +239,25 @@ async function loadSummary() {
   render();
 }
 
+async function loadConfig() {
+  const response = await fetch("/api/config");
+  if (!response.ok) throw new Error("config request failed");
+  const config = await response.json();
+  state.scanToken = config.scanToken || null;
+}
+
 async function runScan() {
+  if (!state.scanToken) throw new Error("scan token is not ready");
+
   elements.scanButton.disabled = true;
   elements.scanButton.textContent = text("scanning");
   try {
-    const response = await fetch("/api/scan", { method: "POST" });
+    const response = await fetch("/api/scan", {
+      method: "POST",
+      headers: {
+        "x-codex-rate-dashboard-token": state.scanToken,
+      },
+    });
     if (!response.ok) throw new Error("scan request failed");
     await loadSummary();
   } finally {
@@ -595,4 +610,5 @@ setActiveDays(state.days);
 setActiveLimit(state.limit);
 setActiveLanguage(state.language);
 updateStaticText();
+loadConfig().catch(console.error);
 loadSummary().catch(console.error);

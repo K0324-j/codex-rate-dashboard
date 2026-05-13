@@ -1,12 +1,14 @@
 import fs from "node:fs";
 import http from "node:http";
 import path from "node:path";
+import crypto from "node:crypto";
 import { getConfig } from "./config.js";
 import { getSummary, openDatabase } from "./db.js";
 import { scanSessions } from "./scanner.js";
 
 const config = getConfig();
 const db = openDatabase(config);
+const scanToken = crypto.randomBytes(32).toString("hex");
 
 const mimeTypes = new Map([
   [".html", "text/html; charset=utf-8"],
@@ -62,12 +64,23 @@ async function handleRequest(request, response) {
     return;
   }
 
+  if (request.method === "GET" && url.pathname === "/api/config") {
+    sendJson(response, 200, { scanToken });
+    return;
+  }
+
   if (request.method === "POST" && url.pathname === "/api/scan") {
+    if (request.headers["x-codex-rate-dashboard-token"] !== scanToken) {
+      sendJson(response, 403, { ok: false, message: "forbidden" });
+      return;
+    }
+
     try {
       const result = await scanSessions(config, db);
       sendJson(response, 200, result);
     } catch (error) {
-      sendJson(response, 500, { ok: false, message: error.message });
+      console.error(error);
+      sendJson(response, 500, { ok: false, message: "internal error" });
     }
     return;
   }
@@ -85,7 +98,8 @@ await scanSessions(config, db);
 
 const server = http.createServer((request, response) => {
   handleRequest(request, response).catch((error) => {
-    sendJson(response, 500, { ok: false, message: error.message });
+    console.error(error);
+    sendJson(response, 500, { ok: false, message: "internal error" });
   });
 });
 
