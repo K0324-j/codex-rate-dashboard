@@ -100,6 +100,32 @@ export function insertScanRun(db, stats) {
   );
 }
 
+function valueForWindow(snapshot, windowMinutes) {
+  const fields = [
+    ["primary", snapshot.primaryWindowMinutes],
+    ["secondary", snapshot.secondaryWindowMinutes],
+  ];
+  const match = fields.find(([, minutes]) => minutes === windowMinutes)?.[0];
+  if (!match) return { usedPercent: null, resetsAt: null };
+
+  return {
+    usedPercent: snapshot[`${match}UsedPercent`],
+    resetsAt: snapshot[`${match}ResetsAt`],
+  };
+}
+
+function normalizeSnapshot(snapshot) {
+  const fiveHour = valueForWindow(snapshot, 300);
+  const weekly = valueForWindow(snapshot, 10_080);
+  return {
+    ...snapshot,
+    fiveHourUsedPercent: fiveHour.usedPercent,
+    fiveHourResetsAt: fiveHour.resetsAt,
+    weeklyUsedPercent: weekly.usedPercent,
+    weeklyResetsAt: weekly.resetsAt,
+  };
+}
+
 export function getSummary(db, days = 7) {
   const range = String(days).toLowerCase();
   const isAll = range === "all";
@@ -110,7 +136,7 @@ export function getSummary(db, days = 7) {
     ? null
     : new Date(Date.now() - windowMs).toISOString();
 
-  const latest = db.prepare(`
+  const latestRaw = db.prepare(`
     SELECT
       event_timestamp AS eventTimestamp,
       limit_id AS limitId,
@@ -132,8 +158,10 @@ export function getSummary(db, days = 7) {
     SELECT
       event_timestamp AS eventTimestamp,
       primary_used_percent AS primaryUsedPercent,
+      primary_window_minutes AS primaryWindowMinutes,
       primary_resets_at AS primaryResetsAt,
       secondary_used_percent AS secondaryUsedPercent,
+      secondary_window_minutes AS secondaryWindowMinutes,
       secondary_resets_at AS secondaryResetsAt
     FROM rate_limit_snapshots
     WHERE event_timestamp >= ?
@@ -143,37 +171,34 @@ export function getSummary(db, days = 7) {
     SELECT
       event_timestamp AS eventTimestamp,
       primary_used_percent AS primaryUsedPercent,
+      primary_window_minutes AS primaryWindowMinutes,
       primary_resets_at AS primaryResetsAt,
       secondary_used_percent AS secondaryUsedPercent,
+      secondary_window_minutes AS secondaryWindowMinutes,
       secondary_resets_at AS secondaryResetsAt
     FROM rate_limit_snapshots
     ORDER BY event_timestamp ASC, id ASC
   `;
-  const points = since ? db.prepare(pointsQuery).all(since) : db.prepare(pointsQuery).all();
+  const points = (since ? db.prepare(pointsQuery).all(since) : db.prepare(pointsQuery).all())
+    .map(normalizeSnapshot);
 
-  const dailyQuery = since
-    ? `
-    SELECT
-      substr(event_timestamp, 1, 10) AS day,
-      max(primary_used_percent) AS primaryMax,
-      max(secondary_used_percent) AS secondaryMax,
-      count(*) AS sampleCount
-    FROM rate_limit_snapshots
-    WHERE event_timestamp >= ?
-    GROUP BY substr(event_timestamp, 1, 10)
-    ORDER BY day ASC
-  `
-    : `
-    SELECT
-      substr(event_timestamp, 1, 10) AS day,
-      max(primary_used_percent) AS primaryMax,
-      max(secondary_used_percent) AS secondaryMax,
-      count(*) AS sampleCount
-    FROM rate_limit_snapshots
-    GROUP BY substr(event_timestamp, 1, 10)
-    ORDER BY day ASC
-  `;
-  const daily = since ? db.prepare(dailyQuery).all(since) : db.prepare(dailyQuery).all();
+  const daily = [];
+  for (const point of points) {
+    const day = point.eventTimestamp.slice(0, 10);
+    let item = daily.at(-1);
+    if (item?.day !== day) {
+      item = { day, fiveHourMax: null, weeklyMax: null, sampleCount: 0 };
+      daily.push(item);
+    }
+
+    item.sampleCount += 1;
+    if (typeof point.fiveHourUsedPercent === "number") {
+      item.fiveHourMax = Math.max(item.fiveHourMax ?? point.fiveHourUsedPercent, point.fiveHourUsedPercent);
+    }
+    if (typeof point.weeklyUsedPercent === "number") {
+      item.weeklyMax = Math.max(item.weeklyMax ?? point.weeklyUsedPercent, point.weeklyUsedPercent);
+    }
+  }
 
   const totals = db.prepare(`
     SELECT count(*) AS snapshotCount FROM rate_limit_snapshots
@@ -196,7 +221,7 @@ export function getSummary(db, days = 7) {
   return {
     days: isAll ? "all" : range === "24h" ? "24h" : Math.round(windowMs / 24 / 60 / 60 / 1000),
     generatedAt: new Date().toISOString(),
-    latest: latest || null,
+    latest: latestRaw ? normalizeSnapshot(latestRaw) : null,
     points,
     daily,
     totals,

@@ -10,6 +10,8 @@ const translations = {
     secondaryLabel: "1週間枠",
     primaryMetric: "5時間枠 残量",
     secondaryMetric: "1週間枠 残量",
+    unavailable: "一時停止中",
+    unavailableDetail: "現在のログに値なし",
     scanMetric: "最終スキャン",
     scan: "再スキャン",
     scanning: "スキャン中",
@@ -46,6 +48,8 @@ const translations = {
     secondaryLabel: "Weekly window",
     primaryMetric: "5-hour remaining",
     secondaryMetric: "Weekly remaining",
+    unavailable: "Unavailable",
+    unavailableDetail: "No value in the latest log",
     scanMetric: "Last scan",
     scan: "Rescan",
     scanning: "Scanning",
@@ -83,7 +87,7 @@ const getInitialLanguage = () => {
 
 const state = {
   days: 7,
-  limit: "primary",
+  limit: "weekly",
   language: getInitialLanguage(),
   data: null,
   scanToken: null,
@@ -179,19 +183,21 @@ function setActiveLanguage(language) {
 }
 
 function getLimitMeta() {
-  if (state.limit === "secondary") {
+  if (state.limit === "weekly") {
     return {
       label: text("secondaryLabel"),
-      usedKey: "secondaryUsedPercent",
-      resetKey: "secondaryResetsAt",
+      usedKey: "weeklyUsedPercent",
+      resetKey: "weeklyResetsAt",
+      dailyKey: "weeklyMax",
       colorClass: "line-secondary",
     };
   }
 
   return {
     label: text("primaryLabel"),
-    usedKey: "primaryUsedPercent",
-    resetKey: "primaryResetsAt",
+    usedKey: "fiveHourUsedPercent",
+    resetKey: "fiveHourResetsAt",
+    dailyKey: "fiveHourMax",
     colorClass: "line-primary",
   };
 }
@@ -217,7 +223,7 @@ function updateStaticText() {
   elements.periodSegments.setAttribute("aria-label", text("periodGroup"));
 
   elements.limitButtons.forEach((button) => {
-    button.textContent = button.dataset.limit === "secondary" ? text("secondaryShort") : text("primaryShort");
+    button.textContent = button.dataset.limit === "weekly" ? text("secondaryShort") : text("primaryShort");
   });
   elements.dayButtons.forEach((button) => {
     if (button.dataset.days === "all") {
@@ -269,13 +275,23 @@ async function runScan() {
 function render() {
   const data = state.data;
   const latest = data?.latest;
-  const limit = getLimitMeta();
 
+  const limit = getLimitMeta();
   updateStaticText();
-  elements.primaryValue.textContent = formatPercent(remainingFromUsed(latest?.primaryUsedPercent));
-  elements.secondaryValue.textContent = formatPercent(remainingFromUsed(latest?.secondaryUsedPercent));
-  elements.primaryReset.textContent = `${text("reset")} ${formatDateTime(latest?.primaryResetsAt)}`;
-  elements.secondaryReset.textContent = `${text("reset")} ${formatDateTime(latest?.secondaryResetsAt)}`;
+  const fiveHourAvailable = typeof latest?.fiveHourUsedPercent === "number";
+  const weeklyAvailable = typeof latest?.weeklyUsedPercent === "number";
+  elements.primaryValue.textContent = fiveHourAvailable
+    ? formatPercent(remainingFromUsed(latest.fiveHourUsedPercent))
+    : text("unavailable");
+  elements.secondaryValue.textContent = weeklyAvailable
+    ? formatPercent(remainingFromUsed(latest.weeklyUsedPercent))
+    : text("unavailable");
+  elements.primaryReset.textContent = fiveHourAvailable
+    ? `${text("reset")} ${formatDateTime(latest.fiveHourResetsAt)}`
+    : text("unavailableDetail");
+  elements.secondaryReset.textContent = weeklyAvailable
+    ? `${text("reset")} ${formatDateTime(latest.weeklyResetsAt)}`
+    : text("unavailableDetail");
   elements.scanTime.textContent = formatDateTime(data?.lastScan?.scannedAt);
   elements.scanCount.textContent = `${data?.totals?.snapshotCount ?? 0} ${text("snapshots")}`;
   elements.chartTitle.textContent = text("remainingTrend")(limit.label);
@@ -387,7 +403,7 @@ function showTooltip(point, event) {
   elements.chart.append(line);
 
   const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
-  dot.setAttribute("class", state.limit === "secondary" ? "hover-dot dot-secondary" : "hover-dot dot-primary");
+  dot.setAttribute("class", state.limit === "weekly" ? "hover-dot dot-secondary" : "hover-dot dot-primary");
   dot.setAttribute("cx", x);
   dot.setAttribute("cy", y);
   dot.setAttribute("r", 5);
@@ -512,13 +528,13 @@ function renderChart(rawPoints) {
 
   const pathData = pointsToPath(points, scaleX, scaleY);
 
-  make("path", { class: state.limit === "secondary" ? "path-secondary" : "path-primary", d: pathData });
+  make("path", { class: state.limit === "weekly" ? "path-secondary" : "path-primary", d: pathData });
 
   const sampled = points.filter((_, index) => index % Math.max(1, Math.floor(points.length / 80)) === 0);
   for (const point of sampled) {
     const x = scaleX(point.timestampMs);
     make("circle", {
-      class: state.limit === "secondary" ? "dot-secondary" : "dot-primary",
+      class: state.limit === "weekly" ? "dot-secondary" : "dot-primary",
       cx: x,
       cy: scaleY(point.remainingPercent),
       r: 2.4,
@@ -537,8 +553,8 @@ function renderChart(rawPoints) {
 function renderDaily(days) {
   elements.dailyRows.replaceChildren();
   const limit = getLimitMeta();
-  const key = state.limit === "secondary" ? "secondaryMax" : "primaryMax";
-  const fillClass = state.limit === "secondary" ? "secondary-fill" : "primary-fill";
+  const key = limit.dailyKey;
+  const fillClass = state.limit === "weekly" ? "secondary-fill" : "primary-fill";
 
   if (days.length === 0) {
     const row = document.createElement("div");
@@ -561,13 +577,13 @@ function renderDaily(days) {
     bar.className = "bar";
     const fill = document.createElement("span");
     fill.className = fillClass;
-    const remaining = remainingFromUsed(day[key]) || 0;
-    fill.style.width = `${remaining}%`;
+    const remaining = remainingFromUsed(day[key]);
+    fill.style.width = `${remaining ?? 0}%`;
     bar.append(fill);
     track.append(bar);
 
     const value = document.createElement("span");
-    value.textContent = `${Math.round(remaining)}%`;
+    value.textContent = typeof remaining === "number" ? `${Math.round(remaining)}%` : "--";
     value.title = limit.label;
     row.append(label, track, value);
     elements.dailyRows.append(row);

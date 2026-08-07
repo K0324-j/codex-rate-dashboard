@@ -4,6 +4,8 @@
 
 A small local web dashboard that extracts only `rate_limits` data from Codex local session logs and lets you check remaining usage trends for the 5-hour and 1-week windows.
 
+The dashboard identifies each window by its logged `window_minutes` value, rather than assuming that `primary` and `secondary` always mean the same window. If a window is temporarily absent from the latest log, it is shown as unavailable instead of being relabeled or treated as 0%.
+
 ## Unofficial Tool
 
 This project is not an official OpenAI tool.
