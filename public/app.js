@@ -599,4 +599,3 @@ setActiveLanguage(state.language);
 updateStaticText();
 loadConfig().catch(console.error);
 loadSummary().catch(console.error);
-
