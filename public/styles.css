@@ -210,10 +210,6 @@ h2 {
   vertical-align: middle;
 }
 
-.reset-legend {
-  margin-left: 10px;
-}
-
 .line-primary {
   background: var(--primary);
 }
@@ -224,10 +220,6 @@ h2 {
 
 .line-warning {
   background: var(--warning);
-}
-
-.line-reset {
-  background: var(--danger);
 }
 
 .chart-wrap {
@@ -273,24 +265,6 @@ h2 {
   stroke-dasharray: 4 8;
 }
 
-.reset-marker {
-  stroke: var(--danger);
-  stroke-width: 1.4;
-  stroke-dasharray: 2 5;
-  opacity: 0.62;
-}
-
-.reset-marker-dot {
-  fill: var(--danger);
-  opacity: 0.86;
-}
-
-.reset-marker-label {
-  fill: var(--danger);
-  font-size: 11px;
-  font-weight: 700;
-}
-
 .path-primary,
 .path-secondary {
   fill: none;
@@ -320,6 +294,14 @@ h2 {
   stroke-width: 1;
   stroke-dasharray: 3 4;
   opacity: 0.58;
+  pointer-events: none;
+}
+
+.hover-reset-line {
+  stroke: var(--danger);
+  stroke-width: 1.4;
+  stroke-dasharray: 2 5;
+  opacity: 0.62;
   pointer-events: none;
 }
 
