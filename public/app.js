@@ -301,7 +301,7 @@ function render() {
       : state.days === "24h"
         ? text("scope24h")(limit.label)
         : text("scopeDays")(state.days, limit.label);
-  elements.activeLegend.innerHTML = `<i class="${limit.colorClass}"></i>${limit.label} <span class="reset-legend"><i class="line-reset"></i>${text("resetMark")}</span>`;
+  elements.activeLegend.innerHTML = `<i class="${limit.colorClass}"></i>${limit.label}`;
   elements.dailyTitle.textContent = text("dailyTitle")(limit.label);
   elements.generatedAt.textContent = `${text("generated")} ${formatDateTime(data?.generatedAt)}`;
 
@@ -317,22 +317,6 @@ function pointsToPath(points, scaleX, scaleY) {
       return `${command} ${scaleX(new Date(point.eventTimestamp).getTime()).toFixed(2)} ${scaleY(point.remainingPercent).toFixed(2)}`;
     })
     .join(" ");
-}
-
-function getResetMarkers(points, minX, maxX) {
-  const seen = new Set();
-  return points
-    .map((point) => getUnixSeconds(point.resetAt))
-    .filter((seconds) => typeof seconds === "number")
-    .map((seconds) => seconds * 1000)
-    .filter((timestamp) => timestamp >= minX && timestamp <= maxX)
-    .filter((timestamp) => {
-      const key = Math.round(timestamp / 60_000);
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    })
-    .sort((a, b) => a - b);
 }
 
 function getTimeTicks(minX, maxX, desiredCount = 5) {
@@ -368,7 +352,7 @@ function ensureTooltip() {
 function hideTooltip() {
   const tooltip = elements.chartWrap.querySelector(".chart-tooltip");
   if (tooltip) tooltip.hidden = true;
-  elements.chart.querySelectorAll(".hover-line, .hover-dot").forEach((node) => node.remove());
+  elements.chart.querySelectorAll(".hover-line, .hover-reset-line, .hover-dot").forEach((node) => node.remove());
 }
 
 function showTooltip(point, event) {
@@ -393,7 +377,7 @@ function showTooltip(point, event) {
   tooltip.style.top = `${Math.max(12, Math.min(wrapRect.height - 116, top - 84))}px`;
   tooltip.hidden = false;
 
-  elements.chart.querySelectorAll(".hover-line, .hover-dot").forEach((node) => node.remove());
+  elements.chart.querySelectorAll(".hover-line, .hover-reset-line, .hover-dot").forEach((node) => node.remove());
   const line = document.createElementNS("http://www.w3.org/2000/svg", "line");
   line.setAttribute("class", "hover-line");
   line.setAttribute("x1", x);
@@ -401,6 +385,18 @@ function showTooltip(point, event) {
   line.setAttribute("y1", chartState.padding.top);
   line.setAttribute("y2", chartState.height - chartState.padding.bottom);
   elements.chart.append(line);
+
+  const resetTimestampMs = getUnixSeconds(point.resetAt);
+  const resetAtMs = typeof resetTimestampMs === "number" ? resetTimestampMs * 1000 : null;
+  if (resetAtMs !== null && resetAtMs >= chartState.minX && resetAtMs <= chartState.maxX) {
+    const resetLine = document.createElementNS("http://www.w3.org/2000/svg", "line");
+    resetLine.setAttribute("class", "hover-reset-line");
+    resetLine.setAttribute("x1", chartState.scaleX(resetAtMs));
+    resetLine.setAttribute("x2", chartState.scaleX(resetAtMs));
+    resetLine.setAttribute("y1", chartState.padding.top);
+    resetLine.setAttribute("y2", chartState.height - chartState.padding.bottom);
+    elements.chart.append(resetLine);
+  }
 
   const dot = document.createElementNS("http://www.w3.org/2000/svg", "circle");
   dot.setAttribute("class", state.limit === "weekly" ? "hover-dot dot-secondary" : "hover-dot dot-primary");
@@ -499,31 +495,6 @@ function renderChart(rawPoints) {
     x2: width - padding.right,
     y1: scaleY(0),
     y2: scaleY(0),
-  });
-
-  const resetMarkers = getResetMarkers(points, minX, maxX);
-  const resetLabelStep = Math.max(1, Math.ceil(resetMarkers.length / 8));
-  resetMarkers.forEach((marker, index) => {
-    const x = scaleX(marker);
-    make("line", {
-      class: "reset-marker",
-      x1: x,
-      x2: x,
-      y1: padding.top,
-      y2: height - padding.bottom,
-    });
-    make("circle", {
-      class: "reset-marker-dot",
-      cx: x,
-      cy: padding.top,
-      r: 3,
-    });
-    if (index % resetLabelStep !== 0) return;
-    make("text", {
-      class: "reset-marker-label",
-      x: Math.min(width - padding.right - 4, x + 6),
-      y: padding.top + 14,
-    }).textContent = text("resetMark");
   });
 
   const pathData = pointsToPath(points, scaleX, scaleY);
@@ -628,3 +599,4 @@ setActiveLanguage(state.language);
 updateStaticText();
 loadConfig().catch(console.error);
 loadSummary().catch(console.error);
+
